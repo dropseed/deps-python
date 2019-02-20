@@ -6,15 +6,7 @@ cases:
   output_data_path: tests/collector/basic_pip/expected_output_data.json
   user_config:
     path: requirements-dev.txt
-- name: basic_pip_python_2710
-  type: collector
-  dockerfile: Dockerfile
-  repo_contents: tests/collector/basic_pip/repo
-  output_data_path: tests/collector/basic_pip/expected_output_data.json
-  user_config:
-    path: requirements-dev.txt
-    settings:
-      python_version: 2.7.10
+
 - name: basic_pip_python_2715
   type: collector
   dockerfile: Dockerfile
