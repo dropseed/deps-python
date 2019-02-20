@@ -10,7 +10,6 @@ RUN apk add --no-cache --update \
     bzip2-dev \
     linux-headers \
     ncurses-dev \
-    libressl-dev \
     readline-dev \
     sqlite-dev \
     libffi-dev \
