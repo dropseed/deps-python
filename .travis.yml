@@ -3,7 +3,7 @@ services:
   - docker
 
 language: python
-python: 3.6
+python: 3.7
 cache: pip
 
 # split them up to speed up the tests
@@ -14,7 +14,7 @@ env:
 
 install:
 - pip install dependencies-cli==2.2.4
-# - curl https://www.dependencies.io/install.sh | bash -s 2.5.0-beta.2
+- curl https://www.dependencies.io/install.sh | bash -s 2.5.0-beta.2
 
 script:
 - dependencies test -k $TEST_TYPE --loose-output-data-comparison
