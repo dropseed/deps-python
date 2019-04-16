@@ -6,7 +6,7 @@ from utils import write_json_to_temp_file, run
 
 def collect():
 
-    run('deps component hook before_update')
+    run('deps hook before_update')
 
     # The first argument should be the manifest file
     manifest_starting_path = sys.argv[1]
@@ -32,7 +32,7 @@ def collect():
         # Record direct dependencies
         direct_deps.extend([dep.key for dep in manifest.dependencies()])
 
-    run('deps component collect {}'.format(write_json_to_temp_file(output)))
+    run('deps collect {}'.format(write_json_to_temp_file(output)))
 
     # Lockfile Processing
     lockfile_output = {
@@ -58,4 +58,4 @@ def collect():
                 'dependencies': lockfile.dio_dependencies(direct_dependencies=direct_deps),
             }
 
-        run('deps component collect {}'.format(write_json_to_temp_file(lockfile_output)))
+        run('deps collect {}'.format(write_json_to_temp_file(lockfile_output)))

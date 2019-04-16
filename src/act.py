@@ -10,7 +10,7 @@ def act():
         data = json.load(f)
 
     # create a new branch for this update
-    run('deps component branch')
+    run('deps branch')
 
     for lockfile_path, lockfile_data in data.get('lockfiles', {}).items():
         # If "lockfiles" are present then it means that there are updates to
@@ -45,7 +45,7 @@ def act():
         lockfile_data['updated']['fingerprint'] = lockfile.fingerprint()
 
         # 2) Add and commit the changes
-        run('deps component commit -m "Update {}" {}'.format(lockfile_path, lockfile_path))
+        run('deps commit -m "Update {}" {}'.format(lockfile_path, lockfile_path))
 
     for manifest_path, manifest_data in data.get('manifests', {}).items():
         for dependency_name, updated_dependency_data in manifest_data['updated']['dependencies'].items():
@@ -74,6 +74,6 @@ def act():
             with open(manifest_path, 'w+') as f:
                 f.write(updated_content)
 
-            run('deps component commit -m "Update {} from {} to {}" {}'.format(dependency_name, installed, updated_dependency_data['constraint'], manifest_path))
+            run('deps commit -m "Update {} from {} to {}" {}'.format(dependency_name, installed, updated_dependency_data['constraint'], manifest_path))
 
-    run('deps component pullrequest {}'.format(write_json_to_temp_file(data)))
+    run('deps pullrequest {}'.format(write_json_to_temp_file(data)))
