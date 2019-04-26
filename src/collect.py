@@ -1,17 +1,13 @@
+import json
 import sys
 
 from models import Manifest
 from utils import write_json_to_temp_file, run
 
 
-def collect():
+def collect(input_path, output_path):
 
-    run('deps hook before_update')
-
-    # The first argument should be the manifest file
-    manifest_starting_path = sys.argv[1]
-
-    manifests = Manifest.collect_manifests(manifest_starting_path)  # potentially recursive collection exposed as list
+    manifests = Manifest.collect_manifests(input_path)  # potentially recursive collection exposed as list
 
     # Manifest Processing
     output = {
@@ -32,19 +28,16 @@ def collect():
         # Record direct dependencies
         direct_deps.extend([dep.key for dep in manifest.dependencies()])
 
-    run('deps collect {}'.format(write_json_to_temp_file(output)))
-
     # Lockfile Processing
-    lockfile_output = {
-        'lockfiles': { }
-    }
+    output["lockfiles"] = {}
+
     for lockfile in lockfiles:
         print('Collecting contents of {filename}:'.format(filename=lockfile.filename))
         print(lockfile.content)
 
         current_fingerprint = lockfile.fingerprint()
         current_dependencies = lockfile.dio_dependencies(direct_dependencies=direct_deps)
-        lockfile_output['lockfiles'][lockfile.filename] = { 'current': {
+        output['lockfiles'][lockfile.filename] = { 'current': {
                                                                 'fingerprint': current_fingerprint,
                                                                 'dependencies': current_dependencies,
                                                                 }
@@ -53,9 +46,14 @@ def collect():
         lockfile.native_update()  # use the native tools to update the lockfile
 
         if current_fingerprint != lockfile.fingerprint():
-            lockfile_output['lockfiles'][lockfile.filename]['updated'] = {
+            output['lockfiles'][lockfile.filename]['updated'] = {
                 'fingerprint': lockfile.fingerprint(),
                 'dependencies': lockfile.dio_dependencies(direct_dependencies=direct_deps),
             }
 
-        run('deps collect {}'.format(write_json_to_temp_file(lockfile_output)))
+    with open(output_path, "w+") as f:
+        json.dump(output, f)
+
+
+if __name__ == "__main__":
+    collect(sys.argv[0], sys.argv[1])

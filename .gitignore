@@ -3,6 +3,7 @@
 
 # Python
 *.pyc
+/.venv
 
 # dependencies-cli test cache
 .cache
