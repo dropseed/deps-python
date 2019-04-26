@@ -192,7 +192,7 @@ def get_available_versions_for_dependency(name, specs):
                 raise Exception(msg)
 
         # this is the highest version in the specified range, everything above this is outside our constraints
-        best_candidate = max(filtered_candidates, key=finder._candidate_sort_key)
+        best_candidate = finder.candidate_evaluator.get_best_candidate(filtered_candidates)
 
     newer_versions = [c.version for c in all_candidates if c.version > best_candidate.version]
     in_order = sorted(set(newer_versions))
