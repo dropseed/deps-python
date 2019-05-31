@@ -2,10 +2,9 @@ import hashlib
 import os
 import pip._internal
 import json
+from subprocess import check_call
 
 import dparse.updater
-
-from utils import run
 
 
 class Manifest:
@@ -124,10 +123,9 @@ class LockFile(Manifest):
         print("Using the native tools to update the lockfile")
         if self.type == self.PIPFILE_LOCK:
             if dep:
-                cmd_line = "pipenv update --clear {dep}".format(dep=dep)
+                check_call(["pipenv", "update", "--clear", dep])
             else:
-                cmd_line = "pipenv update --clear"
-            run(cmd_line)
+                check_call(["pipenv", "update", "--clear"])
             self._parse()
 
     def dio_dependencies(self, direct_dependencies=None):
