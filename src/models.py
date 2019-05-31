@@ -75,19 +75,28 @@ class Manifest:
 
     def dio_dependencies(self):
         "Return dependencies.io formatted list of manifest dependencies"
-        dependencies = {}
+        output = {
+            "current": {
+                "dependencies": {},
+            },
+            "updated": {
+                "dependencies": {},
+            },
+        }
+
         for dep in self.dependencies():
-            constraint = str(dep.specs)
 
-            # report exact versions without the leading "=="
-            if constraint.startswith('==') and not constraint.startswith('==='):
-                constraint = constraint[2:]
-
-            dependencies[dep.key] = {
+            output["current"]["dependencies"][dep.key] = {
                 'source': dep.source,
-                'constraint': constraint,
-                'available': [{'name': x} for x in get_available_versions_for_dependency(dep.key, dep.specs)],
+                'constraint': str(dep.specs) or "*",
             }
+
+            available = get_available_versions_for_dependency(dep.key, dep.specs)
+            if available:
+                output["updated"]["dependencies"][dep.key] = {
+                    'source': dep.source,
+                    'constraint': '==' + available[0],
+                }
 
         # final_data = {
         #     'manifests': {
@@ -101,19 +110,16 @@ class Manifest:
         #
         # return final_data
 
-        return dependencies
+        return output
 
     def fingerprint(self):
         return hashlib.md5(self.content.encode('utf-8')).hexdigest()
 
     def updater(self, content, dependency, version, spec):
-        return self.filewriter.update(content=content, dependency=dependency, version=version, spec='')
+        return self.filewriter.update(content=content, dependency=dependency, version=version, spec=spec)
 
 
 class LockFile(Manifest):
-    def strip_version_str(self, version_str):
-        return version_str.lstrip('=')
-
     def native_update(self, dep=None):
         print("Using the native tools to update the lockfile")
         if self.type == self.PIPFILE_LOCK:
@@ -130,7 +136,7 @@ class LockFile(Manifest):
         for dep in self.dependencies():
             dependencies[dep.key] = {
                 'source': dep.source,
-                'installed': {'name': self.strip_version_str(str(dep.specs))},
+                'version': {'name': str(dep.specs).lstrip("=")},
             }
             if direct_dependencies:
                 dependencies[dep.key]['is_transitive'] = True if dep.key not in direct_dependencies else False
@@ -165,10 +171,10 @@ def get_available_versions_for_dependency(name, specs):
     # This uses the native pip library to do the package resolution
     # TODO figure out how to do this without mocking all these useless things...
     list_command = pip._internal.commands.ListCommand()
-    pip_args = json.loads(os.getenv("SETTING_PIP_ARGS", "[]"))
+    pip_args = json.loads(os.getenv("DEPS_SETTING_PIP_ARGS", "[]"))
     options, args = list_command.parse_args(pip_args)
 
-    warn_on_missing_versions = json.loads(os.getenv("SETTING_WARN_ON_MISSING_VERSIONS", "false"))
+    warn_on_missing_versions = json.loads(os.getenv("DEPS_SETTING_WARN_ON_MISSING_VERSIONS", "false"))
 
     with list_command._build_session(options) as session:
         index_urls = [options.index_url] + options.extra_index_urls
@@ -216,16 +222,12 @@ def get_config_settings():
     # pipfilelock_sections:
     #    - default
     #    - develop
-    SETTING_PIPFILE_SECTIONS = os.getenv("SETTING_PIPFILE_SECTIONS", '["packages", "dev-packages"]')
-    print("SETTING_PIPFILE_SECTIONS = {setting}".format(setting=SETTING_PIPFILE_SECTIONS))
+    SETTING_PIPFILE_SECTIONS = os.getenv("DEPS_SETTING_PIPFILE_SECTIONS", '["packages", "dev-packages"]')
+    # print("DEPS_SETTING_PIPFILE_SECTIONS = {setting}".format(setting=SETTING_PIPFILE_SECTIONS))
     conf['pipfile_sections'] = json.loads(SETTING_PIPFILE_SECTIONS)
 
-    SETTING_PIPFILELOCK_SECTIONS = os.getenv("SETTING_PIPFILELOCK_SECTIONS", '["default", "develop"]')
-    print("SETTING_PIPFILELOCK_SECTIONS = {setting}".format(setting=SETTING_PIPFILELOCK_SECTIONS))
+    SETTING_PIPFILELOCK_SECTIONS = os.getenv("DEPS_SETTING_PIPFILELOCK_SECTIONS", '["default", "develop"]')
+    # print("DEPS_SETTING_PIPFILELOCK_SECTIONS = {setting}".format(setting=SETTING_PIPFILELOCK_SECTIONS))
     conf['pipfilelock_sections'] = json.loads(SETTING_PIPFILELOCK_SECTIONS)
-
-    PYTHON_VERSION = os.getenv("SETTING_PYTHON_VERSION", None)
-    print("SETTING_PYTHON_VERSION = {setting}".format(setting=PYTHON_VERSION))
-    conf['python_version'] = PYTHON_VERSION
 
     return conf

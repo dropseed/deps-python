@@ -7,6 +7,7 @@ from utils import write_json_to_temp_file, run
 
 def collect(input_path, output_path):
 
+    print('Collecting manifests from {}'.format(input_path))
     manifests = Manifest.collect_manifests(input_path)  # potentially recursive collection exposed as list
 
     # Manifest Processing
@@ -16,10 +17,9 @@ def collect(input_path, output_path):
     lockfiles = []
     direct_deps = []
     for manifest in manifests:
-        print('Collecting contents of {filename}:'.format(filename=manifest.filename))
-        print(manifest.content)
+        print('Collecting contents of {filename}'.format(filename=manifest.filename))
 
-        output['manifests'][manifest.filename] = { 'current': { 'dependencies': manifest.dio_dependencies() } }
+        output['manifests'][manifest.filename] = manifest.dio_dependencies()
 
         # Add any lockfiles for this manifest for later processing
         if manifest.lockfile:
@@ -32,8 +32,7 @@ def collect(input_path, output_path):
     output["lockfiles"] = {}
 
     for lockfile in lockfiles:
-        print('Collecting contents of {filename}:'.format(filename=lockfile.filename))
-        print(lockfile.content)
+        print('Collecting contents of {filename}'.format(filename=lockfile.filename))
 
         current_fingerprint = lockfile.fingerprint()
         current_dependencies = lockfile.dio_dependencies(direct_dependencies=direct_deps)
@@ -56,4 +55,4 @@ def collect(input_path, output_path):
 
 
 if __name__ == "__main__":
-    collect(sys.argv[0], sys.argv[1])
+    collect(sys.argv[1], sys.argv[2])
