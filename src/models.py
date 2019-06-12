@@ -94,7 +94,7 @@ class Manifest:
             if available:
                 output["updated"]["dependencies"][dep.key] = {
                     'source': dep.source,
-                    'constraint': '==' + available[0],
+                    'constraint': '==' + available[-1],
                 }
 
         # final_data = {
