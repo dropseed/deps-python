@@ -1,8 +1,7 @@
 import hashlib
 import os
-import pip._internal
 import json
-from subprocess import check_call
+from subprocess import check_call, check_output
 
 import dparse.updater
 
@@ -26,6 +25,9 @@ class Manifest:
 
         self._parse()
 
+        self.outdated = []
+        self._get_outdated()
+
         self.conf = get_config_settings()
 
     def _parse(self):
@@ -36,6 +38,10 @@ class Manifest:
 
         if not self.parser.is_valid:
             raise Exception('Unable to parse {filename}'.format(filename=self.filename))
+
+    def _get_outdated(self):
+        output = check_output(["pip", "list", "--local", "--outdated", "--format=json"])
+        self.outdated = json.loads(output)
 
     @classmethod
     def collect_manifests(cls, starting_path):
@@ -72,6 +78,12 @@ class Manifest:
 
         return self.raw_dependencies()
 
+    def get_outdated_version_of_dependency(self, name):
+        for item in self.outdated:
+            if item["name"].lower() == name.lower():
+                return item["latest_version"]
+        return None
+
     def dio_dependencies(self):
         "Return dependencies.io formatted list of manifest dependencies"
         output = {
@@ -85,16 +97,17 @@ class Manifest:
 
         for dep in self.dependencies():
 
+            current_constraint = str(dep.specs) or "*"
             output["current"]["dependencies"][dep.key] = {
                 'source': dep.source,
-                'constraint': str(dep.specs) or "*",
+                'constraint': current_constraint,
             }
 
-            available = get_available_versions_for_dependency(dep.key, dep.specs)
-            if available:
+            latest = self.get_outdated_version_of_dependency(dep.key)
+            if latest and not dep.specs.contains(latest):
                 output["updated"]["dependencies"][dep.key] = {
                     'source': dep.source,
-                    'constraint': '==' + available[-1],
+                    'constraint': updated_constraint,
                 }
 
         # final_data = {
@@ -163,45 +176,6 @@ class LockFile(Manifest):
             return "sha256:{hexdigest}".format(hexdigest=sha.hexdigest())
 
         return super(LockFile, self).fingerprint()
-
-
-def get_available_versions_for_dependency(name, specs):
-    # This uses the native pip library to do the package resolution
-    # TODO figure out how to do this without mocking all these useless things...
-    list_command = pip._internal.commands.ListCommand()
-    pip_args = json.loads(os.getenv("DEPS_SETTING_PIP_ARGS", "[]"))
-    options, args = list_command.parse_args(pip_args)
-
-    warn_on_missing_versions = json.loads(os.getenv("DEPS_SETTING_WARN_ON_MISSING_VERSIONS", "false"))
-
-    with list_command._build_session(options) as session:
-        index_urls = [options.index_url] + options.extra_index_urls
-        if options.no_index:
-            index_urls = []
-
-        finder = list_command._build_package_finder(options, index_urls, session)
-
-        all_candidates = list(finder.find_all_candidates(name))
-        all_versions = set([str(c.version) for c in all_candidates])
-
-        filtered_candidate_versions = list(specs.filter(all_versions))
-        filtered_candidates = [c for c in all_candidates if str(c.version) in filtered_candidate_versions]
-
-        if not filtered_candidates:
-            msg = "No versions found for {} matching spec {}".format(name, specs)
-            if warn_on_missing_versions:
-                print("Warning: {}".format(msg))
-                return []
-            else:
-                raise Exception(msg)
-
-        # this is the highest version in the specified range, everything above this is outside our constraints
-        best_candidate = finder.candidate_evaluator.get_best_candidate(filtered_candidates)
-
-    newer_versions = [c.version for c in all_candidates if c.version > best_candidate.version]
-    in_order = sorted(set(newer_versions))
-
-    return [str(x) for x in in_order]
 
 
 def get_config_settings():
