@@ -222,7 +222,7 @@ def which_pip(search_directory):
 
     try:
         pipenv_venv = check_output(["pipenv", "--venv"], cwd=(search_directory if search_directory else None))
-        to_try.append(pipenv_venv.strip())
+        to_try.append(pipenv_venv.decode("utf-8").strip())
     except CalledProcessError:
         pass
 
