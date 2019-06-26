@@ -1,7 +1,7 @@
 import hashlib
 import os
 import json
-from subprocess import check_call, check_output
+from subprocess import check_call, check_output, CalledProcessError
 
 import dparse.updater
 
@@ -39,8 +39,16 @@ class Manifest:
         if not self.parser.is_valid:
             raise Exception('Unable to parse {filename}'.format(filename=self.filename))
 
+    @property
+    def _pip(self):
+        if not hasattr(self, "__pip"):
+            # only need to check for this once, on first request
+            pip = which_pip(os.path.dirname(self.filename))
+            self.__pip = pip
+        return self.__pip
+
     def _get_outdated(self):
-        output = check_output(["pip", "list", "--local", "--outdated", "--format=json"])
+        output = check_output([self._pip, "list", "--local", "--outdated", "--format=json"])
         self.outdated = json.loads(output)
 
     @classmethod
@@ -204,3 +212,23 @@ def get_config_settings():
     conf['pipfilelock_sections'] = json.loads(SETTING_PIPFILELOCK_SECTIONS)
 
     return conf
+
+
+def which_pip(search_directory):
+
+    # TODO also allow manual override from settings/env
+
+    to_try = [".venv", "env", ".env"]
+
+    try:
+        pipenv_venv = check_output(["pipenv", "--venv"], cwd=(search_directory if search_directory else None))
+        to_try.append(pipenv_venv.strip())
+    except CalledProcessError:
+        pass
+
+    for t in to_try:
+        pip_path = os.path.join(search_directory, t, "bin", "pip")
+        if os.path.exists(pip_path):
+            return pip_path
+
+    return "pip"
