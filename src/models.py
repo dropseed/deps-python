@@ -105,6 +105,7 @@ class Manifest:
 
             latest = self.get_outdated_version_of_dependency(dep.key)
             if latest and not dep.specs.contains(latest):
+                updated_constraint = f"=={latest}"  # TODO could guess prefix here
                 output["updated"]["dependencies"][dep.key] = {
                     'source': dep.source,
                     'constraint': updated_constraint,
