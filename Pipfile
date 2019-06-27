@@ -8,3 +8,6 @@ verify_ssl = true
 [packages]
 pipenv = "==2018.11.26"
 dparse = "==0.4.1"
+
+[requires]
+python_version = "3"
