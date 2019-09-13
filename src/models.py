@@ -13,6 +13,7 @@ class Manifest:
 
     def __init__(self, filename):
         self.filename = filename
+        self.dir = os.path.dirname(self.filename)
         if filename.endswith(self.PIPFILE):
             self.type = self.PIPFILE
             self.filewriter = dparse.updater.PipfileUpdater
@@ -43,7 +44,7 @@ class Manifest:
     def _pip(self):
         if not hasattr(self, "__pip"):
             # only need to check for this once, on first request
-            pip = which_pip(os.path.dirname(self.filename))
+            pip = which_pip(self.dir)
             self.__pip = pip
         return self.__pip
 
@@ -72,7 +73,7 @@ class Manifest:
     @property
     def lockfile(self):
         if self.type == self.PIPFILE:
-            return LockFile(os.path.join(os.path.dirname(self.filename), 'Pipfile.lock'))
+            return LockFile(os.path.join(self.dir, 'Pipfile.lock'))
         return None
 
     def raw_dependencies(self):
@@ -145,9 +146,9 @@ class LockFile(Manifest):
         print("Using the native tools to update the lockfile")
         if self.type == self.PIPFILE_LOCK:
             if dep:
-                check_call(["pipenv", "update", "--clear", dep])
+                check_call(["pipenv", "update", "--clear", dep], cwd=self.dir)
             else:
-                check_call(["pipenv", "update", "--clear"])
+                check_call(["pipenv", "update", "--clear"], cwd=self.dir)
             self._parse()
 
     def dio_dependencies(self, direct_dependencies=None):
