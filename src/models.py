@@ -72,7 +72,7 @@ class Manifest:
     @property
     def lockfile(self):
         if self.type == self.PIPFILE:
-            return LockFile('Pipfile.lock')
+            return LockFile(os.path.join(os.path.dirname(self.filename), 'Pipfile.lock'))
         return None
 
     def raw_dependencies(self):
