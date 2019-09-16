@@ -13,7 +13,7 @@ class Manifest:
 
     def __init__(self, filename):
         self.filename = filename
-        self.dir = os.path.dirname(self.filename) or os.getcwd()
+        self.dir = os.path.dirname(self.filename)
         if filename.endswith(self.PIPFILE):
             self.type = self.PIPFILE
             self.filewriter = dparse.updater.PipfileUpdater
@@ -146,9 +146,9 @@ class LockFile(Manifest):
         print("Using the native tools to update the lockfile")
         if self.type == self.PIPFILE_LOCK:
             if dep:
-                check_call(["pipenv", "update", "--clear", dep], cwd=self.dir)
+                check_call(["pipenv", "update", "--clear", dep], cwd=(self.dir or None))
             else:
-                check_call(["pipenv", "update", "--clear"], cwd=self.dir)
+                check_call(["pipenv", "update", "--clear"], cwd=(self.dir or None))
             self._parse()
 
     def dio_dependencies(self, direct_dependencies=None):
@@ -222,7 +222,7 @@ def which_pip(search_directory):
     to_try = [".venv", "env", ".env"]
 
     try:
-        pipenv_venv = check_output(["pipenv", "--venv"], cwd=(search_directory if search_directory else None))
+        pipenv_venv = check_output(["pipenv", "--venv"], cwd=(search_directory or None))
         to_try.append(pipenv_venv.decode("utf-8").strip())
     except CalledProcessError:
         pass
