@@ -26,8 +26,7 @@ class Manifest:
 
         self._parse()
 
-        self.outdated = []
-        self._get_outdated()
+        self.outdated = self.get_outdated()
 
         self.conf = get_config_settings()
 
@@ -48,9 +47,9 @@ class Manifest:
             self.__pip = pip
         return self.__pip
 
-    def _get_outdated(self):
+    def get_outdated(self):
         output = check_output([self._pip, "list", "--local", "--outdated", "--format=json"])
-        self.outdated = json.loads(output)
+        return json.loads(output)
 
     @classmethod
     def collect_manifests(cls, starting_path):
@@ -216,8 +215,12 @@ def get_config_settings():
 
 
 def which_pip(search_directory):
-
-    # TODO also allow manual override from settings/env
+    SETTING_PIP_PATH = os.getenv("DEPS_SETTING_PIP_PATH", "")
+    if SETTING_PIP_PATH:
+        if os.path.exists(SETTING_PIP_PATH):
+            return SETTING_PIP_PATH
+        else:
+            raise Exception(f"pip_path ({SETTING_PIP_PATH}) from settings does not exist")
 
     to_try = [".venv", "env", ".env"]
 
