@@ -145,9 +145,9 @@ class LockFile(Manifest):
         print("Using the native tools to update the lockfile")
         if self.type == self.PIPFILE_LOCK:
             if dep:
-                check_call(["pipenv", "update", "--clear", dep], cwd=(self.dir or None))
+                check_call(["pipenv", "update", dep], cwd=(self.dir or None))
             else:
-                check_call(["pipenv", "update", "--clear"], cwd=(self.dir or None))
+                check_call(["pipenv", "update"], cwd=(self.dir or None))
             self._parse()
 
     def dio_dependencies(self, direct_dependencies=None):
