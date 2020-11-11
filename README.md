@@ -3,7 +3,6 @@
 Currently supports:
 
 - `Pipfile`
-- `Pipfile.lock`
 - `requirements.txt` (filename doesn't matter)
 
 ## Example `deps.yml`
