@@ -3,12 +3,14 @@ name: deps
 on:
   schedule:
   - cron: 0 0 * * 1
+  workflow_dispatch: {}
 
 jobs:
   deps:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
     - run: pip install -U pip pipenv
     - run: curl https://deps.app/install.sh | bash -s -- -b $HOME/bin
     - run: $HOME/bin/deps ci
