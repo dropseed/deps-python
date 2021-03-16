@@ -6,94 +6,66 @@ from subprocess import check_call, check_output, CalledProcessError
 import dparse.updater
 
 
-class Manifest:
-    REQUIREMENTS = 'requirements.txt'
-    PIPFILE = 'Pipfile'
-    PIPFILE_LOCK = 'Pipfile.lock'
-
+class DependencyFile:
     def __init__(self, filename):
         self.filename = filename
         self.dir = os.path.dirname(self.filename)
-        if filename.endswith(self.PIPFILE):
-            self.type = self.PIPFILE
-            self.filewriter = dparse.updater.PipfileUpdater
-        elif filename.endswith(self.PIPFILE_LOCK):
-            self.type = self.PIPFILE_LOCK
-            self.filewriter = dparse.updater.PipfileLockUpdater
-        else:
-            self.type = self.REQUIREMENTS
-            self.filewriter = dparse.updater.RequirementsTXTUpdater
+        self.settings = get_config_settings()
+        self._load()
 
-        self._parse()
-
-        self.outdated = self.get_outdated()
-
-        self.conf = get_config_settings()
-
-    def _parse(self):
+    def _load(self):
         with open(self.filename, 'r') as f:
             self.content = f.read()
 
-        self.parser = dparse.parse(content=self.content, path=self.filename)
+        self.dparser = self._get_dparser()
 
-        if not self.parser.is_valid:
+    def _get_dparser(self):
+        parser = dparse.parse(content=self.content, path=self.filename)
+        if not parser.is_valid:
             raise Exception('Unable to parse {filename}'.format(filename=self.filename))
-
-    @property
-    def _pip(self):
-        if not hasattr(self, "__pip"):
-            # only need to check for this once, on first request
-            pip = which_pip(self.dir)
-            self.__pip = pip
-        return self.__pip
-
-    def get_outdated(self):
-        output = check_output([self._pip, "list", "--local", "--outdated", "--format=json"])
-        return json.loads(output)
-
-    @classmethod
-    def collect_manifests(cls, starting_path):
-        """
-        Recursively (if necessary) gather all the manifests referenced by the starting_path and return as list
-        :param starting_path:
-        :return:
-        """
-        manifests = []
-        m = Manifest(starting_path)
-        manifests.append(m)
-
-        # recursively call
-        files = m.parser.resolved_files
-        for file in files:
-            more_manifests = Manifest.collect_manifests(file)
-            manifests.extend(more_manifests)
-        return manifests
+        return parser
 
     @property
     def lockfile(self):
-        if self.type == self.PIPFILE:
-            return LockFile(os.path.join(self.dir, 'Pipfile.lock'))
         return None
 
-    def raw_dependencies(self):
-        return self.parser.dependencies
+    @property
+    def _outdated(self):
+        # Cache these results
+        if not hasattr(self, "__outdated"):
+            pip = which_pip(self.dir)
+            output = check_output([pip, "list", "--local", "--outdated", "--format=json"])
+            self.__outdated = json.loads(output)
 
-    def dependencies(self):
-        if self.type == self.PIPFILE:
-            return [d for d in self.raw_dependencies() if d.section in self.conf['pipfile_sections']]
-        if self.type == self.PIPFILE_LOCK:
-            return [d for d in self.raw_dependencies() if d.section in self.conf['pipfilelock_sections']]
+        return self.__outdated
 
-        return self.raw_dependencies()
-
-    def get_outdated_version_of_dependency(self, name):
-        for item in self.outdated:
+    def _get_outdated_version_of_dependency(self, name):
+        for item in self._outdated:
             if item["name"].lower() == name.lower():
                 return item["latest_version"]
         return None
 
-    def dio_dependencies(self):
-        "Return dependencies.io formatted list of manifest dependencies"
+    def update_dependency(self, dependency, constraint):
+        """Lockfiles don't need to implement this since the whole thing is updated at once"""
+        raise NotImplementedError
+
+    def get_dependencies(self):
+        """Return dependencies.io formatted list of manifest dependencies"""
+        raise NotImplementedError
+
+    def fingerprint(self):
+        return hashlib.md5(self.content.encode('utf-8')).hexdigest()
+
+
+class Requirements(DependencyFile):
+    def update_dependency(self, dependency, constraint):
+        dparse_dependency = [x for x in self.dparser.dependencies if x.key == dependency][0]
+        updated_content = dparse.updater.RequirementsTXTUpdater.update(content=self.content, dependency=dparse_dependency, version=constraint, spec="")  # spec in constraint
+        with open(self.filename, "w+") as f:
+            f.write(updated_content)
+        self._load()
+
+    def get_dependencies(self):
         output = {
             "current": {
                 "dependencies": {},
@@ -103,7 +75,9 @@ class Manifest:
             },
         }
 
-        for dep in self.dependencies():
+        deps = self.dparser.dependencies
+
+        for dep in deps:
 
             current_constraint = str(dep.specs) or "*"
             output["current"]["dependencies"][dep.key] = {
@@ -111,7 +85,7 @@ class Manifest:
                 'constraint': current_constraint,
             }
 
-            latest = self.get_outdated_version_of_dependency(dep.key)
+            latest = self._get_outdated_version_of_dependency(dep.key)
             if latest and not dep.specs.contains(latest):
                 updated_constraint = f"=={latest}"  # TODO could guess prefix here
                 output["updated"]["dependencies"][dep.key] = {
@@ -119,41 +93,83 @@ class Manifest:
                     'constraint': updated_constraint,
                 }
 
-        # final_data = {
-        #     'manifests': {
-        #         path.relpath('/repo/', manifest_path): dependencies
-        #     }
-        # }
-        #
-        # for p in dependency_file.resolved_files:
-        #     # -r includes
-        #     final_data.update(collect_manifest_dependencies(p))
-        #
-        # return final_data
+        return output
+
+
+class Pipfile(DependencyFile):
+    def update_dependency(self, dependency, constraint):
+        dparse_dependency = [x for x in self.dparser.dependencies if x.key == dependency][0]
+        updated_content = dparse.updater.PipfileUpdater.update(content=self.content, dependency=dparse_dependency, version=constraint, spec="")  # spec in constraint
+        with open(self.filename, "w+") as f:
+            f.write(updated_content)
+        self._load()
+
+    @property
+    def lockfile(self):
+        return PipfileLock(os.path.join(self.dir, 'Pipfile.lock'))
+
+    def get_dependencies(self):
+        output = {
+            "current": {
+                "dependencies": {},
+            },
+            "updated": {
+                "dependencies": {},
+            },
+        }
+
+        deps = [d for d in self.dparser.dependencies if d.section in self.settings['pipfile_sections']]
+
+        for dep in deps:
+
+            current_constraint = str(dep.specs) or "*"
+            output["current"]["dependencies"][dep.key] = {
+                'source': dep.source,
+                'constraint': current_constraint,
+            }
+
+            latest = self._get_outdated_version_of_dependency(dep.key)
+            if latest and not dep.specs.contains(latest):
+                updated_constraint = f"=={latest}"  # TODO could guess prefix here
+                output["updated"]["dependencies"][dep.key] = {
+                    'source': dep.source,
+                    'constraint': updated_constraint,
+                }
 
         return output
 
+
+class PipfileLock(DependencyFile):
     def fingerprint(self):
-        return hashlib.md5(self.content.encode('utf-8')).hexdigest()
+        # Pipfile.lock stores its own hash but it's of the Pipfile, so we
+        # need our own hash of the Pipfile.lock.
+        #
+        # If we compute our own (hashing the file) then we're likely to get
+        # get misleading results since Pipfile.lock contains info about
+        # the platform the command was run on. This will differ from the user
+        # to us (and between users/machines/etc.) so we can't rely on that
+        # as the fingerprint for the update. If we did, we'd likely send
+        # a bunch of updates that only change the meta info in Pipfile.lock.
 
-    def updater(self, content, dependency, version, spec):
-        return self.filewriter.update(content=content, dependency=dependency, version=version, spec=spec)
+        # Thus we'll use just part of the Pipfile.lock contents -- everyting
+        # but the top-level "_meta" section.
+        pipfile_data = json.loads(self.content)
+        del(pipfile_data['_meta'])
+        sha = hashlib.sha256()
+        sha.update(json.dumps(pipfile_data).encode('utf8'))
+        return "sha256:{hexdigest}".format(hexdigest=sha.hexdigest())
 
+    def update(self):
+        check_call(["pipenv", "update"], cwd=(self.dir or None))
+        self._load()
 
-class LockFile(Manifest):
-    def native_update(self, dep=None):
-        print("Using the native tools to update the lockfile")
-        if self.type == self.PIPFILE_LOCK:
-            if dep:
-                check_call(["pipenv", "update", dep], cwd=(self.dir or None))
-            else:
-                check_call(["pipenv", "update"], cwd=(self.dir or None))
-            self._parse()
-
-    def dio_dependencies(self, direct_dependencies=None):
-        "Return dependencies.io formatted list of lockfile dependencies"
+    def get_dependencies(self, direct_dependencies=[]):
+        """Return dependencies.io formatted list of lockfile dependencies"""
         dependencies = {}
-        for dep in self.dependencies():
+
+        deps = [d for d in self.dparser.dependencies if d.section in self.settings['pipfilelock_sections']]
+
+        for dep in deps:
             dependencies[dep.key] = {
                 'source': dep.source,
                 'version': {'name': str(dep.specs).lstrip("=")},
@@ -163,28 +179,32 @@ class LockFile(Manifest):
 
         return dependencies
 
-    def fingerprint(self):
-        if self.type == self.PIPFILE_LOCK:
-            # Pipfile.lock stores its own hash but it's of the Pipfile, so we
-            # need our own hash of the Pipfile.lock.
-            #
-            # If we compute our own (hashing the file) then we're likely to get
-            # get misleading results since Pipfile.lock contains info about
-            # the platform the command was run on. This will differ from the user
-            # to us (and between users/machines/etc.) so we can't rely on that
-            # as the fingerprint for the update. If we did, we'd likely send
-            # a bunch of updates that only change the meta info in Pipfile.lock.
 
-            # Thus we'll use just part of the Pipfile.lock contents -- everyting
-            # but the top-level "_meta" section.
-            with open(self.filename, 'r') as f:
-                pipfile_data = json.load(f)
-            del(pipfile_data['_meta'])
-            sha = hashlib.sha256()
-            sha.update(json.dumps(pipfile_data).encode('utf8'))
-            return "sha256:{hexdigest}".format(hexdigest=sha.hexdigest())
+def load_dependency_file(path):
+    if path.endswith("Pipfile"):
+        return Pipfile(path)
+    elif path.endswith("Pipfile.lock"):
+        return PipfileLock(path)
+    else:
+        return Requirements(path)
 
-        return super(LockFile, self).fingerprint()
+
+def load_dependency_files(path):
+    """
+    Recursively (if necessary) gather all the manifests referenced by the starting_path and return as list
+    :param starting_path:
+    :return:
+    """
+    f = load_dependency_file(path)
+    files = [f]
+
+    # recursively call
+    if f.dparser:
+        for file in f.dparser.resolved_files:
+            more_manifests = load_dependency_files(file)
+            files.extend(more_manifests)
+
+    return files
 
 
 def get_config_settings():
