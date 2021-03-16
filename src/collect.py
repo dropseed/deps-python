@@ -9,6 +9,9 @@ def collect(input_path, output_path):
     if input_path.endswith("Pipfile.lock"):
         print("Interpreting given `Pipfile.lock` path as `Pipfile`")
         input_path = input_path[:-5]
+    elif input_path.endswith("poetry.lock"):
+        print("Using pyproject.toml as manifest for poetry.lock")
+        input_path = input_path[:-11] + "pyproject.toml"
 
     print("Collecting manifests from {}".format(input_path))
     manifests = load_dependency_files(
@@ -29,6 +32,7 @@ def collect(input_path, output_path):
         if manifest.lockfile:
             lockfiles.append(manifest.lockfile)
 
+        print(manifest_dependencies)
         # Record direct dependencies
         direct_deps.extend(
             [dep for dep in manifest_dependencies["current"]["dependencies"].keys()]

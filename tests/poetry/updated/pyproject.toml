@@ -7,7 +7,7 @@ authors = ["Dropseed <python@dropseed.io>"]
 [tool.poetry.dependencies]
 python = ">=2.7,<3.0.0 || >=3.5.0"
 jinja2 = "^2.11.2"
-requests = "~2.24.0"
+requests = "2.25.1"
 
 [build-system]
 requires = ["poetry>=0.12"]

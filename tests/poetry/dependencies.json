@@ -1,0 +1,129 @@
+{
+  "lockfiles": {
+    "poetry.lock": {
+      "current": {
+        "dependencies": {
+          "certifi": {
+            "version": {
+              "name": "2020.12.5"
+            },
+            "is_transitive": true,
+            "source": "pypi"
+          },
+          "chardet": {
+            "version": {
+              "name": "3.0.4"
+            },
+            "is_transitive": true,
+            "source": "pypi"
+          },
+          "idna": {
+            "version": {
+              "name": "2.10"
+            },
+            "is_transitive": true,
+            "source": "pypi"
+          },
+          "jinja2": {
+            "version": {
+              "name": "2.11.2"
+            },
+            "source": "pypi"
+          },
+          "markupsafe": {
+            "version": {
+              "name": "1.1.1"
+            },
+            "is_transitive": true,
+            "source": "pypi"
+          },
+          "requests": {
+            "version": {
+              "name": "2.24.0"
+            },
+            "source": "pypi"
+          },
+          "urllib3": {
+            "version": {
+              "name": "1.22"
+            },
+            "is_transitive": true,
+            "source": "pypi"
+          }
+        },
+        "fingerprint": "19904f27e531a7949150305cbafdd678"
+      },
+      "updated": {
+        "dependencies": {
+          "certifi": {
+            "version": {
+              "name": "2020.12.5"
+            },
+            "source": "pypi"
+          },
+          "chardet": {
+            "version": {
+              "name": "3.0.4"
+            },
+            "source": "pypi"
+          },
+          "idna": {
+            "version": {
+              "name": "2.10"
+            },
+            "source": "pypi"
+          },
+          "jinja2": {
+            "version": {
+              "name": "2.11.3"
+            },
+            "source": "pypi"
+          },
+          "markupsafe": {
+            "version": {
+              "name": "1.1.1"
+            },
+            "source": "pypi"
+          },
+          "requests": {
+            "version": {
+              "name": "2.24.0"
+            },
+            "source": "pypi"
+          },
+          "urllib3": {
+            "version": {
+              "name": "1.22"
+            },
+            "source": "pypi"
+          }
+        },
+        "fingerprint": "8c36093df3b3c2e81e28ce6ee3688060"
+      }
+    }
+  },
+  "manifests": {
+    "pyproject.toml": {
+      "current": {
+        "dependencies": {
+          "jinja2": {
+            "constraint": "^2.11.2",
+            "source": "pypi"
+          },
+          "requests": {
+            "constraint": "~2.24.0",
+            "source": "pypi"
+          }
+        }
+      },
+      "updated": {
+        "dependencies": {
+          "requests": {
+            "constraint": "==2.25.1",
+            "source": "pypi"
+          }
+        }
+      }
+    }
+  }
+}
