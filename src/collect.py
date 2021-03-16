@@ -32,7 +32,6 @@ def collect(input_path, output_path):
         if manifest.lockfile:
             lockfiles.append(manifest.lockfile)
 
-        print(manifest_dependencies)
         # Record direct dependencies
         direct_deps.extend(
             [dep for dep in manifest_dependencies["current"]["dependencies"].keys()]
