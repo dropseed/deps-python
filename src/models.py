@@ -1,7 +1,7 @@
 import hashlib
 import os
 import json
-from subprocess import check_call, check_output, CalledProcessError
+from subprocess import check_call, check_output
 
 import dparse.updater
 from poetry.factory import Factory as PoetryFactory
@@ -359,13 +359,13 @@ def which_pip(search_directory):
     try:
         pipenv_venv = check_output(["pipenv", "--venv"], cwd=(search_directory or None))
         to_try.append(pipenv_venv.decode("utf-8").strip())
-    except CalledProcessError:
+    except Exception:  # was CalledProcessError, but poetry seems to have monkeypatched that and broke
         pass
 
     try:
         poetry_env = check_output(["poetry", "env", "info", "-p"], cwd=(search_directory or None))
         to_try.append(poetry_env.decode("utf-8").strip())
-    except CalledProcessError:
+    except Exception:
         pass
 
     for t in to_try:
