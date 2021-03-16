@@ -14,7 +14,7 @@ class DependencyFile:
         self._load()
 
     def _load(self):
-        with open(self.filename, 'r') as f:
+        with open(self.filename, "r") as f:
             self.content = f.read()
 
         self.dparser = self._get_dparser()
@@ -22,7 +22,7 @@ class DependencyFile:
     def _get_dparser(self):
         parser = dparse.parse(content=self.content, path=self.filename)
         if not parser.is_valid:
-            raise Exception('Unable to parse {filename}'.format(filename=self.filename))
+            raise Exception("Unable to parse {filename}".format(filename=self.filename))
         return parser
 
     @property
@@ -34,7 +34,9 @@ class DependencyFile:
         # Cache these results
         if not hasattr(self, "__outdated"):
             pip = which_pip(self.dir)
-            output = check_output([pip, "list", "--local", "--outdated", "--format=json"])
+            output = check_output(
+                [pip, "list", "--local", "--outdated", "--format=json"]
+            )
             self.__outdated = json.loads(output)
 
         return self.__outdated
@@ -54,13 +56,20 @@ class DependencyFile:
         raise NotImplementedError
 
     def fingerprint(self):
-        return hashlib.md5(self.content.encode('utf-8')).hexdigest()
+        return hashlib.md5(self.content.encode("utf-8")).hexdigest()
 
 
 class Requirements(DependencyFile):
     def update_dependency(self, dependency, constraint):
-        dparse_dependency = [x for x in self.dparser.dependencies if x.key == dependency][0]
-        updated_content = dparse.updater.RequirementsTXTUpdater.update(content=self.content, dependency=dparse_dependency, version=constraint, spec="")  # spec in constraint
+        dparse_dependency = [
+            x for x in self.dparser.dependencies if x.key == dependency
+        ][0]
+        updated_content = dparse.updater.RequirementsTXTUpdater.update(
+            content=self.content,
+            dependency=dparse_dependency,
+            version=constraint,
+            spec="",
+        )  # spec in constraint
         with open(self.filename, "w+") as f:
             f.write(updated_content)
         self._load()
@@ -81,16 +90,16 @@ class Requirements(DependencyFile):
 
             current_constraint = str(dep.specs) or "*"
             output["current"]["dependencies"][dep.key] = {
-                'source': dep.source,
-                'constraint': current_constraint,
+                "source": dep.source,
+                "constraint": current_constraint,
             }
 
             latest = self._get_outdated_version_of_dependency(dep.key)
             if latest and not dep.specs.contains(latest):
                 updated_constraint = f"=={latest}"  # TODO could guess prefix here
                 output["updated"]["dependencies"][dep.key] = {
-                    'source': dep.source,
-                    'constraint': updated_constraint,
+                    "source": dep.source,
+                    "constraint": updated_constraint,
                 }
 
         return output
@@ -98,15 +107,22 @@ class Requirements(DependencyFile):
 
 class Pipfile(DependencyFile):
     def update_dependency(self, dependency, constraint):
-        dparse_dependency = [x for x in self.dparser.dependencies if x.key == dependency][0]
-        updated_content = dparse.updater.PipfileUpdater.update(content=self.content, dependency=dparse_dependency, version=constraint, spec="")  # spec in constraint
+        dparse_dependency = [
+            x for x in self.dparser.dependencies if x.key == dependency
+        ][0]
+        updated_content = dparse.updater.PipfileUpdater.update(
+            content=self.content,
+            dependency=dparse_dependency,
+            version=constraint,
+            spec="",
+        )  # spec in constraint
         with open(self.filename, "w+") as f:
             f.write(updated_content)
         self._load()
 
     @property
     def lockfile(self):
-        return PipfileLock(os.path.join(self.dir, 'Pipfile.lock'))
+        return PipfileLock(os.path.join(self.dir, "Pipfile.lock"))
 
     def get_dependencies(self):
         output = {
@@ -118,22 +134,26 @@ class Pipfile(DependencyFile):
             },
         }
 
-        deps = [d for d in self.dparser.dependencies if d.section in self.settings['pipfile_sections']]
+        deps = [
+            d
+            for d in self.dparser.dependencies
+            if d.section in self.settings["pipfile_sections"]
+        ]
 
         for dep in deps:
 
             current_constraint = str(dep.specs) or "*"
             output["current"]["dependencies"][dep.key] = {
-                'source': dep.source,
-                'constraint': current_constraint,
+                "source": dep.source,
+                "constraint": current_constraint,
             }
 
             latest = self._get_outdated_version_of_dependency(dep.key)
             if latest and not dep.specs.contains(latest):
                 updated_constraint = f"=={latest}"  # TODO could guess prefix here
                 output["updated"]["dependencies"][dep.key] = {
-                    'source': dep.source,
-                    'constraint': updated_constraint,
+                    "source": dep.source,
+                    "constraint": updated_constraint,
                 }
 
         return output
@@ -154,9 +174,9 @@ class PipfileLock(DependencyFile):
         # Thus we'll use just part of the Pipfile.lock contents -- everyting
         # but the top-level "_meta" section.
         pipfile_data = json.loads(self.content)
-        del(pipfile_data['_meta'])
+        del pipfile_data["_meta"]
         sha = hashlib.sha256()
-        sha.update(json.dumps(pipfile_data).encode('utf8'))
+        sha.update(json.dumps(pipfile_data).encode("utf8"))
         return "sha256:{hexdigest}".format(hexdigest=sha.hexdigest())
 
     def update(self):
@@ -167,15 +187,21 @@ class PipfileLock(DependencyFile):
         """Return dependencies.io formatted list of lockfile dependencies"""
         dependencies = {}
 
-        deps = [d for d in self.dparser.dependencies if d.section in self.settings['pipfilelock_sections']]
+        deps = [
+            d
+            for d in self.dparser.dependencies
+            if d.section in self.settings["pipfilelock_sections"]
+        ]
 
         for dep in deps:
             dependencies[dep.key] = {
-                'source': dep.source,
-                'version': {'name': str(dep.specs).lstrip("=")},
+                "source": dep.source,
+                "version": {"name": str(dep.specs).lstrip("=")},
             }
             if direct_dependencies:
-                dependencies[dep.key]['is_transitive'] = True if dep.key not in direct_dependencies else False
+                dependencies[dep.key]["is_transitive"] = (
+                    True if dep.key not in direct_dependencies else False
+                )
 
         return dependencies
 
@@ -223,13 +249,17 @@ def get_config_settings():
     # pipfilelock_sections:
     #    - default
     #    - develop
-    SETTING_PIPFILE_SECTIONS = os.getenv("DEPS_SETTING_PIPFILE_SECTIONS", '["packages", "dev-packages"]')
+    SETTING_PIPFILE_SECTIONS = os.getenv(
+        "DEPS_SETTING_PIPFILE_SECTIONS", '["packages", "dev-packages"]'
+    )
     # print("DEPS_SETTING_PIPFILE_SECTIONS = {setting}".format(setting=SETTING_PIPFILE_SECTIONS))
-    conf['pipfile_sections'] = json.loads(SETTING_PIPFILE_SECTIONS)
+    conf["pipfile_sections"] = json.loads(SETTING_PIPFILE_SECTIONS)
 
-    SETTING_PIPFILELOCK_SECTIONS = os.getenv("DEPS_SETTING_PIPFILELOCK_SECTIONS", '["default", "develop"]')
+    SETTING_PIPFILELOCK_SECTIONS = os.getenv(
+        "DEPS_SETTING_PIPFILELOCK_SECTIONS", '["default", "develop"]'
+    )
     # print("DEPS_SETTING_PIPFILELOCK_SECTIONS = {setting}".format(setting=SETTING_PIPFILELOCK_SECTIONS))
-    conf['pipfilelock_sections'] = json.loads(SETTING_PIPFILELOCK_SECTIONS)
+    conf["pipfilelock_sections"] = json.loads(SETTING_PIPFILELOCK_SECTIONS)
 
     return conf
 
@@ -240,7 +270,9 @@ def which_pip(search_directory):
         if os.path.exists(SETTING_PIP_PATH):
             return SETTING_PIP_PATH
         else:
-            raise Exception(f"pip_path ({SETTING_PIP_PATH}) from settings does not exist")
+            raise Exception(
+                f"pip_path ({SETTING_PIP_PATH}) from settings does not exist"
+            )
 
     to_try = [".venv", "env", ".env"]
 
