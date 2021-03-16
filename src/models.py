@@ -362,6 +362,12 @@ def which_pip(search_directory):
     except CalledProcessError:
         pass
 
+    try:
+        poetry_env = check_output(["poetry", "env", "info", "-p"], cwd=(search_directory or None))
+        to_try.append(poetry_env.decode("utf-8").strip())
+    except CalledProcessError:
+        pass
+
     for t in to_try:
         pip_path = os.path.join(search_directory, t, "bin", "pip")
         if os.path.exists(pip_path):
