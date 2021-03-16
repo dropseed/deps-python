@@ -1,0 +1,7 @@
+tests:
+- name: poetry
+  repo: original
+  diff: updated
+  data: dependencies.json
+  user_config:
+    path: poetry.lock

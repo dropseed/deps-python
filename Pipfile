@@ -8,6 +8,7 @@ verify_ssl = true
 [packages]
 pipenv = "*"
 dparse = "*"
+toml = "*"
 
 [requires]
 python_version = "3"
