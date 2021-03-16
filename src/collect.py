@@ -2,10 +2,13 @@ import json
 import sys
 
 from models import Manifest
-from utils import write_json_to_temp_file
 
 
 def collect(input_path, output_path):
+
+    if input_path.endswith("Pipfile.lock"):
+        print('Interpreting given `Pipfile.lock` path as `Pipfile`')
+        input_path = input_path[:-5]
 
     print('Collecting manifests from {}'.format(input_path))
     manifests = Manifest.collect_manifests(input_path)  # potentially recursive collection exposed as list

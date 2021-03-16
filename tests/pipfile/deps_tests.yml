@@ -1,0 +1,17 @@
+tests:
+
+- name: Pipfile
+  repo: original
+  diff: updated
+  data: dependencies.json
+  diff_args: [-x, .venv]
+  user_config:
+    path: Pipfile
+
+- name: Pipfile.lock
+  repo: original
+  diff: updated
+  data: dependencies.json
+  diff_args: [-x, .venv]
+  user_config:
+    path: Pipfile.lock
