@@ -1,0 +1,43 @@
+{
+  "lockfiles": {
+    "Pipfile.lock": {
+      "current": {
+        "dependencies": {
+          "toml": {
+            "version": {
+              "name": "0.7.1"
+            },
+            "source": "pypi"
+          }
+        },
+        "fingerprint": "sha256:4b1e37ca08c34805308afdb9b02eaf299f73752a695802d1fbaf6512a7b2d007"
+      },
+      "updated": {
+        "dependencies": {
+          "toml": {
+            "version": {
+              "name": "0.10.2"
+            },
+            "source": "pypi"
+          }
+        },
+        "fingerprint": "sha256:01e5dea7d8c26be37945e8012c90594dcc7f98efb62db140a06409f477a214d8"
+      }
+    }
+  },
+  "manifests": {
+    "Pipfile": {
+      "current": {
+        "dependencies": {
+          "toml": {
+            "constraint": "*",
+            "source": "pypi"
+          }
+        }
+      },
+      "updated": {
+        "dependencies": {}
+      }
+    }
+  }
+}

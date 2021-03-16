@@ -1,0 +1,8 @@
+tests:
+
+- name: pipfile
+  repo: original
+  diff: updated
+  data: dependencies.json
+  user_config:
+    path: Pipfile

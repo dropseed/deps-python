@@ -1,0 +1,22 @@
+{
+  "manifests": {
+    "requirements.txt": {
+      "current": {
+        "dependencies": {
+          "requests": {
+            "constraint": "==2.24.0",
+            "source": "pypi"
+          }
+        }
+      },
+      "updated": {
+        "dependencies": {
+          "requests": {
+            "constraint": "==2.25.1",
+            "source": "pypi"
+          }
+        }
+      }
+    }
+  }
+}
