@@ -3,7 +3,6 @@ import json
 import sys
 
 from models import Manifest, LockFile
-from utils import write_json_to_temp_file
 
 
 def act(input_path, output_path):

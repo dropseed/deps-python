@@ -2,7 +2,6 @@ import json
 import sys
 
 from models import Manifest
-from utils import write_json_to_temp_file
 
 
 def collect(input_path, output_path):
