@@ -28,7 +28,7 @@ class DepFile:
         return parser
 
     def fingerprint(self):
-        return hashlib.md5(self.content.encode("utf-8")).hexdigest()
+        return hashlib.md5(self.content.encode("utf-8").strip()).hexdigest()
 
     def get_dependencies(self):
         """Return dependencies.io formatted list of manifest dependencies"""
