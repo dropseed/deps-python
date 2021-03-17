@@ -3,5 +3,6 @@ tests:
   repo: original
   diff: updated
   data: dependencies.json
+  diff_args: [-x, .venv]
   user_config:
     path: poetry.lock

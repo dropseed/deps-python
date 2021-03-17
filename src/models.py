@@ -27,6 +27,15 @@ class DepFile:
             raise Exception("Unable to parse {filename}".format(filename=self.filename))
         return parser
 
+    def fingerprint(self):
+        return hashlib.md5(self.content.encode("utf-8")).hexdigest()
+
+    def get_dependencies(self):
+        """Return dependencies.io formatted list of manifest dependencies"""
+        raise NotImplementedError
+
+
+class Manifest(DepFile):
     @property
     def lockfile(self):
         return None
@@ -53,15 +62,17 @@ class DepFile:
         """Lockfiles don't need to implement this since the whole thing is updated at once"""
         raise NotImplementedError
 
-    def get_dependencies(self):
-        """Return dependencies.io formatted list of manifest dependencies"""
+
+class Lockfile(DepFile):
+    @property
+    def manifest(self):
         raise NotImplementedError
 
-    def fingerprint(self):
-        return hashlib.md5(self.content.encode("utf-8")).hexdigest()
+    def update(self):
+        raise NotImplementedError
 
 
-class Requirements(DepFile):
+class Requirements(Manifest):
     def update_dependency(self, dependency, constraint):
         dparse_dependency = [
             x for x in self.dparser.dependencies if x.key == dependency
@@ -107,7 +118,7 @@ class Requirements(DepFile):
         return output
 
 
-class Pipfile(DepFile):
+class Pipfile(Manifest):
     def update_dependency(self, dependency, constraint):
         dparse_dependency = [
             x for x in self.dparser.dependencies if x.key == dependency
@@ -161,7 +172,11 @@ class Pipfile(DepFile):
         return output
 
 
-class PipfileLock(DepFile):
+class PipfileLock(Lockfile):
+    @property
+    def manifest(self):
+        return Pipfile(os.path.join(self.dir, "Pipfile"))
+
     def fingerprint(self):
         # Pipfile.lock stores its own hash but it's of the Pipfile, so we
         # need our own hash of the Pipfile.lock.
@@ -185,9 +200,14 @@ class PipfileLock(DepFile):
         check_call(["pipenv", "update"], cwd=(self.dir or None))
         self._load()
 
-    def get_dependencies(self, direct_dependencies=[]):
+    def get_dependencies(self):
         """Return dependencies.io formatted list of lockfile dependencies"""
         dependencies = {}
+
+        direct_dependencies = [
+            d.key
+            for d in self.manifest.dparser.dependencies
+        ]
 
         deps = [
             d
@@ -208,7 +228,7 @@ class PipfileLock(DepFile):
         return dependencies
 
 
-class PoetryBase(DepFile):
+class PoetryPyproject(Manifest):
     def _get_dparser(self):
         """dparse doesn't support this yet"""
         return None
@@ -217,8 +237,6 @@ class PoetryBase(DepFile):
     def _poetry(self):
         return PoetryFactory().create_poetry(self.dir)
 
-
-class PoetryPyproject(PoetryBase):
     @property
     def lockfile(self):
         return PoetryLock(os.path.join(self.dir, "poetry.lock"))
@@ -263,15 +281,27 @@ class PoetryPyproject(PoetryBase):
         return output
 
 
-class PoetryLock(PoetryBase):
+class PoetryLock(Lockfile):
+    def _get_dparser(self):
+        """dparse doesn't support this yet"""
+        return None
+
+    @property
+    def _poetry(self):
+        return PoetryFactory().create_poetry(self.dir)
+
     def update(self):
         check_call(["poetry", "update"], cwd=(self.dir or None))
         self._load()
 
-    def get_dependencies(self, direct_dependencies=[]):
+    def get_dependencies(self):
         dependencies = {}
 
-        for dep in self._poetry.locker.lock_data["package"]:
+        poetry = self._poetry
+
+        direct_dependencies = [dep.name for dep in (poetry.package.requires + poetry.package.dev_requires)]
+
+        for dep in poetry.locker.lock_data["package"]:
             dependencies[dep["name"]] = {
                 "source": dep.get("source", {}).get("type", "pypi"),  # crude for now
                 "version": {"name": dep["version"]},
