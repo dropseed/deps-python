@@ -3,6 +3,7 @@
 Currently supports:
 
 - `Pipfile`
+- `poetry.lock`
 - `requirements.txt` (filename doesn't matter)
 
 ## Example `deps.yml`

@@ -1,12 +1,14 @@
 import hashlib
 import os
 import json
-from subprocess import check_call, check_output, CalledProcessError
+from subprocess import check_call, check_output
 
 import dparse.updater
+from poetry.factory import Factory as PoetryFactory
+from poetry.core.semver.version import Version as PoetryVersion
 
 
-class DependencyFile:
+class DepFile:
     def __init__(self, filename):
         self.filename = filename
         self.dir = os.path.dirname(self.filename)
@@ -25,6 +27,15 @@ class DependencyFile:
             raise Exception("Unable to parse {filename}".format(filename=self.filename))
         return parser
 
+    def fingerprint(self):
+        return hashlib.md5(self.content.encode("utf-8").strip()).hexdigest()
+
+    def get_dependencies(self):
+        """Return dependencies.io formatted list of manifest dependencies"""
+        raise NotImplementedError
+
+
+class Manifest(DepFile):
     @property
     def lockfile(self):
         return None
@@ -51,15 +62,17 @@ class DependencyFile:
         """Lockfiles don't need to implement this since the whole thing is updated at once"""
         raise NotImplementedError
 
-    def get_dependencies(self):
-        """Return dependencies.io formatted list of manifest dependencies"""
+
+class Lockfile(DepFile):
+    @property
+    def manifest(self):
         raise NotImplementedError
 
-    def fingerprint(self):
-        return hashlib.md5(self.content.encode("utf-8")).hexdigest()
+    def update(self):
+        raise NotImplementedError
 
 
-class Requirements(DependencyFile):
+class Requirements(Manifest):
     def update_dependency(self, dependency, constraint):
         dparse_dependency = [
             x for x in self.dparser.dependencies if x.key == dependency
@@ -105,7 +118,7 @@ class Requirements(DependencyFile):
         return output
 
 
-class Pipfile(DependencyFile):
+class Pipfile(Manifest):
     def update_dependency(self, dependency, constraint):
         dparse_dependency = [
             x for x in self.dparser.dependencies if x.key == dependency
@@ -159,7 +172,11 @@ class Pipfile(DependencyFile):
         return output
 
 
-class PipfileLock(DependencyFile):
+class PipfileLock(Lockfile):
+    @property
+    def manifest(self):
+        return Pipfile(os.path.join(self.dir, "Pipfile"))
+
     def fingerprint(self):
         # Pipfile.lock stores its own hash but it's of the Pipfile, so we
         # need our own hash of the Pipfile.lock.
@@ -183,9 +200,14 @@ class PipfileLock(DependencyFile):
         check_call(["pipenv", "update"], cwd=(self.dir or None))
         self._load()
 
-    def get_dependencies(self, direct_dependencies=[]):
+    def get_dependencies(self):
         """Return dependencies.io formatted list of lockfile dependencies"""
         dependencies = {}
+
+        direct_dependencies = [
+            d.key
+            for d in self.manifest.dparser.dependencies
+        ]
 
         deps = [
             d
@@ -206,11 +228,101 @@ class PipfileLock(DependencyFile):
         return dependencies
 
 
+class PoetryPyproject(Manifest):
+    def _get_dparser(self):
+        """dparse doesn't support this yet"""
+        return None
+
+    @property
+    def _poetry(self):
+        return PoetryFactory().create_poetry(self.dir)
+
+    @property
+    def lockfile(self):
+        return PoetryLock(os.path.join(self.dir, "poetry.lock"))
+
+    def update_dependency(self, dependency, constraint):
+        options = ["--dev"] if dependency in self._poetry.local_config.get("dev-dependencies", {}) else []
+        # TODO what to do if new constraint breaks another, or python version?
+        # just a failed update for now...
+        check_call(["poetry", "add", dependency + constraint] + options)
+        self._load()
+
+    def get_dependencies(self):
+        output = {
+            "current": {
+                "dependencies": {},
+            },
+            "updated": {
+                "dependencies": {},
+            },
+        }
+
+        for dep in (self._poetry.package.requires + self._poetry.package.dev_requires):
+            output["current"]["dependencies"][dep.pretty_name] = {
+                "source": dep.source_url or "pypi",
+                "constraint": dep.pretty_constraint,
+            }
+
+            latest = self._get_outdated_version_of_dependency(dep.pretty_name)
+            if latest:
+                try:
+                    poetry_version = PoetryVersion.parse(latest)
+                except Exception as e:
+                    print(e)
+                    continue
+
+                if not dep.constraint.allows(poetry_version):
+                    output["updated"]["dependencies"][dep.pretty_name] = {
+                        "source": dep.source_url or "pypi",
+                        "constraint": f"=={latest}"  # TODO could guess prefix here,
+                    }
+
+        return output
+
+
+class PoetryLock(Lockfile):
+    def _get_dparser(self):
+        """dparse doesn't support this yet"""
+        return None
+
+    @property
+    def _poetry(self):
+        return PoetryFactory().create_poetry(self.dir)
+
+    def update(self):
+        check_call(["poetry", "update"], cwd=(self.dir or None))
+        self._load()
+
+    def get_dependencies(self):
+        dependencies = {}
+
+        poetry = self._poetry
+
+        direct_dependencies = [dep.name for dep in (poetry.package.requires + poetry.package.dev_requires)]
+
+        for dep in poetry.locker.lock_data["package"]:
+            dependencies[dep["name"]] = {
+                "source": dep.get("source", {}).get("type", "pypi"),  # crude for now
+                "version": {"name": dep["version"]},
+            }
+            if direct_dependencies:
+                dependencies[dep["name"]]["is_transitive"] = (
+                    True if dep["name"] not in direct_dependencies else False
+                )
+
+        return dependencies
+
+
 def load_dependency_file(path):
     if path.endswith("Pipfile"):
         return Pipfile(path)
     elif path.endswith("Pipfile.lock"):
         return PipfileLock(path)
+    elif path.endswith("pyproject.toml"):
+        return PoetryPyproject(path)
+    elif path.endswith("poetry.lock"):
+        return PoetryLock(path)
     else:
         return Requirements(path)
 
@@ -252,13 +364,11 @@ def get_config_settings():
     SETTING_PIPFILE_SECTIONS = os.getenv(
         "DEPS_SETTING_PIPFILE_SECTIONS", '["packages", "dev-packages"]'
     )
-    # print("DEPS_SETTING_PIPFILE_SECTIONS = {setting}".format(setting=SETTING_PIPFILE_SECTIONS))
     conf["pipfile_sections"] = json.loads(SETTING_PIPFILE_SECTIONS)
 
     SETTING_PIPFILELOCK_SECTIONS = os.getenv(
         "DEPS_SETTING_PIPFILELOCK_SECTIONS", '["default", "develop"]'
     )
-    # print("DEPS_SETTING_PIPFILELOCK_SECTIONS = {setting}".format(setting=SETTING_PIPFILELOCK_SECTIONS))
     conf["pipfilelock_sections"] = json.loads(SETTING_PIPFILELOCK_SECTIONS)
 
     return conf
@@ -279,7 +389,13 @@ def which_pip(search_directory):
     try:
         pipenv_venv = check_output(["pipenv", "--venv"], cwd=(search_directory or None))
         to_try.append(pipenv_venv.decode("utf-8").strip())
-    except CalledProcessError:
+    except Exception:  # was CalledProcessError, but poetry seems to have monkeypatched that and broke
+        pass
+
+    try:
+        poetry_env = check_output(["poetry", "env", "info", "-p"], cwd=(search_directory or None))
+        to_try.append(poetry_env.decode("utf-8").strip())
+    except Exception:
         pass
 
     for t in to_try:
