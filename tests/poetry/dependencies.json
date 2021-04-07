@@ -51,7 +51,7 @@
             "source": "pypi"
           }
         },
-        "fingerprint": "19904f27e531a7949150305cbafdd678"
+        "fingerprint": "819bbac84938b38802f4af3f1808a983"
       },
       "updated": {
         "dependencies": {
@@ -103,7 +103,7 @@
             "source": "pypi"
           }
         },
-        "fingerprint": "8c36093df3b3c2e81e28ce6ee3688060"
+        "fingerprint": "77e0a413ae97e79d104756aa631b0bfc"
       }
     }
   },
