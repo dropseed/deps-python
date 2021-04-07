@@ -124,7 +124,7 @@
       "updated": {
         "dependencies": {
           "requests": {
-            "constraint": "==2.25.1",
+            "constraint": "~2.25.1",
             "source": "pypi"
           }
         }

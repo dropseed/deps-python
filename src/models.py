@@ -273,9 +273,10 @@ class PoetryPyproject(Manifest):
                     continue
 
                 if not dep.constraint.allows(poetry_version):
+                    prefix = dep.pretty_constraint[0] if dep.pretty_constraint[0] in ("^", "~") else "=="
                     output["updated"]["dependencies"][dep.pretty_name] = {
                         "source": dep.source_url or "pypi",
-                        "constraint": f"=={latest}"  # TODO could guess prefix here,
+                        "constraint": f"{prefix}{latest}"
                     }
 
         return output
