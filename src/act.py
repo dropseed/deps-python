@@ -10,6 +10,9 @@ def act(input_path, output_path):
         data = json.load(f)
 
     for lockfile_path, lockfile_data in data.get("lockfiles", {}).items():
+        if not "updated" in lockfile_data:
+            continue
+
         lockfile = load_dependency_file(lockfile_path)
         lockfile.update()
 

@@ -1,7 +1,8 @@
 import hashlib
 import os
 import json
-from subprocess import check_call, check_output
+from subprocess import check_call, check_output, CalledProcessError
+import subprocess
 
 import dparse.updater
 from poetry.factory import Factory as PoetryFactory
@@ -243,9 +244,14 @@ class PoetryPyproject(Manifest):
 
     def update_dependency(self, dependency, constraint):
         options = ["--dev"] if dependency in self._poetry.local_config.get("dev-dependencies", {}) else []
-        # TODO what to do if new constraint breaks another, or python version?
-        # just a failed update for now...
-        check_call(["poetry", "add", dependency + constraint] + options)
+
+        try:
+            check_call(["poetry", "add", dependency + constraint] + options)
+        except subprocess.CalledProcessError:
+            print("`poetry add` failed, trying `poetry remove`, then `poetry add` again")
+            check_call(["poetry", "remove", dependency])
+            check_call(["poetry", "add", dependency + constraint] + options)
+
         self._load()
 
     def get_dependencies(self):

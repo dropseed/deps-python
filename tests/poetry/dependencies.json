@@ -5,59 +5,7 @@
         "dependencies": {
           "certifi": {
             "version": {
-              "name": "2020.12.5"
-            },
-            "is_transitive": true,
-            "source": "pypi"
-          },
-          "chardet": {
-            "version": {
-              "name": "3.0.4"
-            },
-            "is_transitive": true,
-            "source": "pypi"
-          },
-          "idna": {
-            "version": {
-              "name": "2.10"
-            },
-            "is_transitive": true,
-            "source": "pypi"
-          },
-          "jinja2": {
-            "version": {
-              "name": "2.11.2"
-            },
-            "source": "pypi"
-          },
-          "markupsafe": {
-            "version": {
-              "name": "1.1.1"
-            },
-            "is_transitive": true,
-            "source": "pypi"
-          },
-          "requests": {
-            "version": {
-              "name": "2.24.0"
-            },
-            "source": "pypi"
-          },
-          "urllib3": {
-            "version": {
-              "name": "1.22"
-            },
-            "is_transitive": true,
-            "source": "pypi"
-          }
-        },
-        "fingerprint": "819bbac84938b38802f4af3f1808a983"
-      },
-      "updated": {
-        "dependencies": {
-          "certifi": {
-            "version": {
-              "name": "2020.12.5"
+              "name": "2021.5.30"
             },
             "is_transitive": true,
             "source": "pypi"
@@ -84,7 +32,7 @@
           },
           "markupsafe": {
             "version": {
-              "name": "1.1.1"
+              "name": "2.0.1"
             },
             "is_transitive": true,
             "source": "pypi"
@@ -97,13 +45,13 @@
           },
           "urllib3": {
             "version": {
-              "name": "1.22"
+              "name": "1.25.11"
             },
             "is_transitive": true,
             "source": "pypi"
           }
         },
-        "fingerprint": "77e0a413ae97e79d104756aa631b0bfc"
+        "fingerprint": "ebec2e2e85e233269d5a65a5589087dc"
       }
     }
   },
@@ -123,6 +71,10 @@
       },
       "updated": {
         "dependencies": {
+          "jinja2": {
+            "constraint": "^3.0.1",
+            "source": "pypi"
+          },
           "requests": {
             "constraint": "~2.25.1",
             "source": "pypi"

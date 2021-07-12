@@ -10,12 +10,7 @@
         }
       },
       "updated": {
-        "dependencies": {
-          "requests": {
-            "constraint": "==2.25.1",
-            "source": "pypi"
-          }
-        }
+        "dependencies": {}
       }
     }
   }
