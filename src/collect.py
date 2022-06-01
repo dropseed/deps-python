@@ -19,7 +19,7 @@ def collect(input_path, output_path):
     )  # potentially recursive collection exposed as list
 
     output = {"manifests": {}, "lockfiles": {}}
-    lockfiles = []
+
     for manifest in manifests:
         print("Collecting contents of {filename}".format(filename=manifest.filename))
 
