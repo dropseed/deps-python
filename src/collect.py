@@ -28,7 +28,9 @@ def collect(input_path, output_path):
 
         if manifest.lockfile:
             lockfile = manifest.lockfile
-            print("Collecting contents of {filename}".format(filename=lockfile.filename))
+            print(
+                "Collecting contents of {filename}".format(filename=lockfile.filename)
+            )
 
             current_fingerprint = lockfile.fingerprint()
             current_dependencies = lockfile.get_dependencies()

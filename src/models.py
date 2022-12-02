@@ -205,10 +205,7 @@ class PipfileLock(Lockfile):
         """Return dependencies.io formatted list of lockfile dependencies"""
         dependencies = {}
 
-        direct_dependencies = [
-            d.key
-            for d in self.manifest.dparser.dependencies
-        ]
+        direct_dependencies = [d.key for d in self.manifest.dparser.dependencies]
 
         deps = [
             d
@@ -243,13 +240,19 @@ class PoetryPyproject(Manifest):
         return PoetryLock(os.path.join(self.dir, "poetry.lock"))
 
     def update_dependency(self, dependency, constraint):
-        is_dev_dependency = dependency in self._poetry.local_config.get("dev-dependencies", {}) or dependency in self._poetry.local_config.get("dev", {}).get("dependencies", {})
+        is_dev_dependency = dependency in self._poetry.local_config.get(
+            "dev-dependencies", {}
+        ) or dependency in self._poetry.local_config.get("dev", {}).get(
+            "dependencies", {}
+        )
         options = ["--group", "dev"] if is_dev_dependency else []
 
         try:
             check_call(["poetry", "add", dependency + constraint] + options)
         except subprocess.CalledProcessError:
-            print("`poetry add` failed, trying `poetry remove`, then `poetry add` again")
+            print(
+                "`poetry add` failed, trying `poetry remove`, then `poetry add` again"
+            )
             check_call(["poetry", "remove", dependency])
             check_call(["poetry", "add", dependency + constraint] + options)
 
@@ -280,10 +283,14 @@ class PoetryPyproject(Manifest):
                     continue
 
                 if not dep.constraint.allows(poetry_version):
-                    prefix = dep.pretty_constraint[0] if dep.pretty_constraint[0] in ("^", "~") else "=="
+                    prefix = (
+                        dep.pretty_constraint[0]
+                        if dep.pretty_constraint[0] in ("^", "~")
+                        else "=="
+                    )
                     output["updated"]["dependencies"][dep.pretty_name] = {
                         "source": dep.source_url or "pypi",
-                        "constraint": f"{prefix}{latest}"
+                        "constraint": f"{prefix}{latest}",
                     }
 
         return output
@@ -354,7 +361,7 @@ def load_dependency_files(path):
 
 
 def get_config_settings():
-    """"Parse configuration settings from the environment variables set in the container"""
+    """ "Parse configuration settings from the environment variables set in the container"""
     conf = {}
     # Pipfiles are expected to have all the requirements of a project for development, production, testing, etc all
     # listed in a single file, unlike requirements.txt convention where production and development requirements are
@@ -401,7 +408,9 @@ def which_pip(search_directory):
         pass
 
     try:
-        poetry_env = check_output(["poetry", "env", "info", "-p"], cwd=(search_directory or None))
+        poetry_env = check_output(
+            ["poetry", "env", "info", "-p"], cwd=(search_directory or None)
+        )
         to_try.append(poetry_env.decode("utf-8").strip())
     except Exception:
         pass
