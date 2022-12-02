@@ -52,6 +52,59 @@
           }
         },
         "fingerprint": "ebec2e2e85e233269d5a65a5589087dc"
+      },
+      "updated": {
+        "dependencies": {
+          "Jinja2": {
+            "version": {
+              "name": "2.11.3"
+            },
+            "is_transitive": true,
+            "source": "pypi"
+          },
+          "MarkupSafe": {
+            "version": {
+              "name": "2.1.1"
+            },
+            "is_transitive": true,
+            "source": "pypi"
+          },
+          "certifi": {
+            "version": {
+              "name": "2022.9.24"
+            },
+            "is_transitive": true,
+            "source": "pypi"
+          },
+          "chardet": {
+            "version": {
+              "name": "3.0.4"
+            },
+            "is_transitive": true,
+            "source": "pypi"
+          },
+          "idna": {
+            "version": {
+              "name": "2.10"
+            },
+            "is_transitive": true,
+            "source": "pypi"
+          },
+          "requests": {
+            "version": {
+              "name": "2.24.0"
+            },
+            "source": "pypi"
+          },
+          "urllib3": {
+            "version": {
+              "name": "1.25.11"
+            },
+            "is_transitive": true,
+            "source": "pypi"
+          }
+        },
+        "fingerprint": "0de498d1024f01fe231dab1871f9dad6"
       }
     }
   },
@@ -72,11 +125,11 @@
       "updated": {
         "dependencies": {
           "jinja2": {
-            "constraint": "^3.0.1",
+            "constraint": "^3.1.2",
             "source": "pypi"
           },
           "requests": {
-            "constraint": "~2.25.1",
+            "constraint": "~2.28.1",
             "source": "pypi"
           }
         }

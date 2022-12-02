@@ -243,7 +243,8 @@ class PoetryPyproject(Manifest):
         return PoetryLock(os.path.join(self.dir, "poetry.lock"))
 
     def update_dependency(self, dependency, constraint):
-        options = ["--dev"] if dependency in self._poetry.local_config.get("dev-dependencies", {}) else []
+        is_dev_dependency = dependency in self._poetry.local_config.get("dev-dependencies", {}) or dependency in self._poetry.local_config.get("dev", {}).get("dependencies", {})
+        options = ["--group", "dev"] if is_dev_dependency else []
 
         try:
             check_call(["poetry", "add", dependency + constraint] + options)
@@ -264,7 +265,7 @@ class PoetryPyproject(Manifest):
             },
         }
 
-        for dep in (self._poetry.package.requires + self._poetry.package.dev_requires):
+        for dep in self._poetry.package.all_requires:
             output["current"]["dependencies"][dep.pretty_name] = {
                 "source": dep.source_url or "pypi",
                 "constraint": dep.pretty_constraint,
@@ -306,7 +307,7 @@ class PoetryLock(Lockfile):
 
         poetry = self._poetry
 
-        direct_dependencies = [dep.name for dep in (poetry.package.requires + poetry.package.dev_requires)]
+        direct_dependencies = [dep.name for dep in poetry.package.all_requires]
 
         for dep in poetry.locker.lock_data["package"]:
             dependencies[dep["name"]] = {
